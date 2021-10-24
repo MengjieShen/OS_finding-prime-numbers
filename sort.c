@@ -1,30 +1,17 @@
-#include <stdio.h> 
-#include <stdlib.h>
-#define YES 1 
-#define NO 0
+#include <stdio.h> /* printf() */ 
+#include <sys/times.h> /* times() */ 
+#include <unistd.h> /* sysconf() */
 
-int prime(int n){ 
-    int i;
-    if (n==1) return(NO); 
-    for (i=2 ; i<n ; i++)
-        if ( n % i == 0) return(NO); 
-    return(YES);
-}
-
-int main(int argc, char *argv[]){
-    int lb=0, ub=0, i=0;
-    if ( (argc != 3) ){
-        printf("usage: prime1 lb ub\n");
-        exit(1); } 
-    lb = atoi(argv[1]);
-    ub = atoi(argv[2]);
-
-    if ( ( lb<1 ) || ( lb > ub ) ) { 
-        printf("usage: prime1 lb ub\n");
-        exit(1); }
-
-    for (i=lb ; i <= ub ; i++) 
-        if ( prime(i)==YES )
-            printf("%d ",i);
-    printf("\n");
+int main(void) {
+    double t1, t2, cpu_time; 
+    struct tms tb1, tb2; 
+    double ticspersec;
+    int i, sum = 0;
+    ticspersec = (double) sysconf(_SC_CLK_TCK); 
+    t1 = (double) times(&tb1);
+    for (i = 0; i < 100000000; i++)
+        sum += i;
+    t2 = (double) times(&tb2);
+    cpu_time = (double) ((tb2.tms_utime + tb2.tms_stime) - (tb1.tms_utime + tb1.tms_stime));
+    printf("Run time was %lf sec (REAL time) although we used the CPU for %lf sec (CPU time) .\n", (t2 - t1) / ticspersec, cpu_time / ticspersec);
 }
