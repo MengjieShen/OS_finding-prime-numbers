@@ -7,7 +7,6 @@
 #include <errno.h>
 #include <sys/times.h> /* times() */ 
 #include <unistd.h> /* sysconf() */
-#define CHILDSIZE 4
 #define YES 1 
 #define NO 0
 
@@ -21,6 +20,17 @@
 
 
 void delegator(pid_t ppid, int childNum){
+
+    // create n name pipes 
+    char fifoArr[childNum][100];
+    char buffer[100];
+    for (int m = 0; m < childNum; m++)
+    {
+        sprintf(buffer, "fifo_delegator%d", m);
+        strcpy(fifoArr[m], buffer);
+        mkfifo(fifoArr[m], 0777);
+    }
+
     // create n worker nodes
     for (int i = 0; i < childNum; i++){
         if(fork() == 0){
