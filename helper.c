@@ -11,9 +11,6 @@
 #include <signal.h>
 #include "prime.h"
 
-extern int signalCount1;
-extern int signalCount2;
-
 void swap(int *a, int *b) {
     int temp = *a;
     *a = *b;
@@ -142,23 +139,6 @@ int* generateArr(int start, int end, int Arr[]){
         track++;   
     }
     return workerArr;
-}
-
-void signalHandler(int signo)
-{
-    switch(signo) {
-    case SIGUSR1: //handle SIGUSR1
-        printf("Parent : catch SIGUSR1\n");
-        signalCount1++;
-        break;
-    case SIGUSR2: //handle SIGUSR2
-        printf("Child : catch SIGUSR2\n");
-        signalCount2++;
-        break;
-    default:      
-        printf("Should not be here\n");
-        break;
-    }
 }
 
 int freell(struct resultNode *head)

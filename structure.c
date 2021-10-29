@@ -23,7 +23,7 @@ void delegatorParent(int fd[], int timePipe[], int rootPipe[]){
             // case -1 means pipe is empty and errono
             // set EAGAIN
             if (errno == EAGAIN) {
-                printf("(pipe empty)\n");
+                // printf("(pipe empty)\n");
                 sleep(1);
             }
             else {
@@ -32,16 +32,13 @@ void delegatorParent(int fd[], int timePipe[], int rootPipe[]){
             }
         }
         else if (nread == 0){
-            // printf("End of conversation\n");
-            // sleep(1);
             break;
         }
         else{
             if(write(rootPipe[1], &tmp, sizeof(int)) == -1){
                  perror("Write failed");
-            }else{
-                printf("delegator node %d wrote %d into the pipe successfully!\n", getpid(), tmp);
             }
+
             // printf("delegator MSG = %d\n", tmp);
         }
     }
@@ -63,7 +60,7 @@ void rootParent(int fd[], resultNode** resultll){
             // case -1 means pipe is empty and errono
             // set EAGAIN
             if (errno == EAGAIN) {
-                printf("(pipe empty)\n");
+                // printf("(pipe empty)\n");
                 sleep(1);
             }
             else {
@@ -87,7 +84,7 @@ void rootParent(int fd[], resultNode** resultll){
 void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
 
     //set up the pipe for delegator to transform data back to the root
-    int fd[childNum-1][2];
+    int fd[childNum][2];
     for (int j = 0; j < childNum; j++){
         // error checking for pipe
         if(pipe(fd[j]) < 0)
@@ -122,13 +119,20 @@ void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
     srand(time(0));
     if (random != -1){
         for (int m = 1; m<childNum+1; m++){
-            int j = rand() % initArrayLength;
-            randomArr[m] = j;
-    }
-    randomArr[childNum] = initArrayLength;
-    Sort(randomArr, childNum-1);
-    }
+            if (initArrayLength != 0){
+                int j = rand() % initArrayLength;
+                randomArr[m] = j;
+            }else{
+                randomArr[m] = 0;
+            }
 
+        }
+    randomArr[childNum] = initArrayLength;
+    Sort(randomArr, childNum+1);
+    }
+    // for (int i = 0; i<childNum+1; i++){
+    //     printf("random array check: %d\n", randomArr[i]);
+    // }
     // create childNum of delegators
     for (int childP = 0; childP < childNum; childP ++){
         pid_t pid = fork();
@@ -147,7 +151,7 @@ void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
                     sig_num = 2;
                 }
 
-                printf("This is the delegator process %d\n", getpid());
+                // printf("This is the delegator process %d\n", getpid());
                 //close the read and write pipe of other children
                 for (int i = 0; i < childNum; i++){
                     if (i != childP){
@@ -230,24 +234,26 @@ void worker(pid_t pppid, int start, int end, int delegatorArr[], int fd[], int t
          
             if(write(fd[1], &tmp, sizeof(int)) == -1){
                  perror("Write failed");
-            }else{
-                printf("process %d wrote the prime numbers into the pipe successfully!\n", getpid());
             }
+            // else{
+            //     printf("process %d wrote the prime numbers into the pipe successfully!\n", getpid());
+            // }
         }
     }
 
     // end the timer and print out the time used
     t2 = (double) times(&tb2);
     cpu_time = (double) ((tb2.tms_utime + tb2.tms_stime) - (tb1.tms_utime + tb1.tms_stime));
-    printf("Run time was %lf sec (REAL time) although we used the CPU for %lf sec (CPU time) .\n", (t2 - t1) / ticspersec, cpu_time / ticspersec);
+    // printf("Run time was %lf sec (REAL time) although we used the CPU for %lf sec (CPU time) .\n", (t2 - t1) / ticspersec, cpu_time / ticspersec);
     double execution_time =  (t2 - t1) / ticspersec;
     // char writeIn[100];
     // sprintf(writeIn, "%.2f", execution_time);
     if(write(timePipe[1], &execution_time, sizeof(double)) == -1){
             perror("Write failed");
-    }else{
-        printf("process %d wrote execution of time successfully into the pipe!\n", getpid());
     }
+    // else{
+    //     printf("process %d wrote execution of time successfully into the pipe!\n", getpid());
+    // }
 
     // send signal to the root node
     if (sig_num == 1){
@@ -260,8 +266,8 @@ void worker(pid_t pppid, int start, int end, int delegatorArr[], int fd[], int t
 
 void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLength, int rootPipe[], int random, int sigNum)
 {
-    int fd[childNum-1][2];
-    int timePipe[childNum-1][2];
+    int fd[childNum][2];
+    int timePipe[childNum][2];
 
     for (int j = 0; j < childNum; j++){
         // error checking for pipe
@@ -292,15 +298,24 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
     int randomArr[childNum+1];
     randomArr[0] = 0;
     srand(time(0));
+    
     if (random != -1){
         for (int m = 1; m<childNum+1; m++){
-            int j = rand() % delegatorArrLength;
-            randomArr[m] = j;
+            if (delegatorArrLength != 0){
+                int j = rand() % delegatorArrLength;
+                randomArr[m] = j;
+            }else{
+                randomArr[m] = 0;
+            }
+
     }
     randomArr[childNum] = delegatorArrLength;
-    Sort(randomArr, childNum-1);
+    Sort(randomArr, childNum+1);
     }
 
+    // for (int i =0; i< childNum+1; i++){
+    //     printf("check delegator random array: %d\n", randomArr[i]);
+    // }
     for (int childP = 0; childP < childNum; childP ++){
         pid_t pid = fork();
             if(pid < 0)
@@ -310,7 +325,7 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
             }
         
             if(pid == 0){
-                printf("This is the worker process %d\n", getpid());
+                // printf("This is the worker process %d\n", getpid());
                 //close the read and write pipe of other children
                 for (int i = 0; i < childNum; i++){
                     if (i != childP){
@@ -350,3 +365,46 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
     }
 
 }
+
+// int signalCount1 = 0;
+// int signalCount2 = 0;
+
+// void signalHandler(int signo)
+// {
+//     switch(signo) {
+//     case SIGUSR1: //handle SIGUSR1
+//         printf("Parent : catch SIGUSR1\n");
+//         signalCount1++;
+//         break;
+//     case SIGUSR2: //handle SIGUSR2
+//         printf("Child : catch SIGUSR2\n");
+//         signalCount2++;
+//         break;
+//     default:      
+//         printf("Should not be here\n");
+//         break;
+//     }
+// }
+// int main()
+// {
+// 	// handle SIGUSR1 and SIGUSR2 
+//     if(signal(SIGUSR1, signalHandler) == SIG_ERR)
+//     {
+//         perror("Can't set handler for SIGUSR1\n");
+//         exit(1);
+//     }
+
+//     if(signal(SIGUSR2, signalHandler) == SIG_ERR)
+//     { 
+//         perror("Can't set handler for SIGUSR2\n");
+//         exit(1);
+//     }
+
+// 	// send all the info to the root node to handle
+// 	root(getpid(), 1, 10000, -1, 2);
+
+//     printf("total signal 1 caught: %d \n", signalCount1);
+//     printf("total signal 2 caught: %d \n", signalCount2);
+// 	return 0;
+// }
+
