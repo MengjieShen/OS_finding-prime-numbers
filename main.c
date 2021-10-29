@@ -12,14 +12,11 @@
 #include <signal.h>
 #include <sys/times.h>
 
-// handle signal and calc the count
-int signalCount = 0;
-void signalHandler(int signal)
-{
-	printf("Caught signal %d!\n", signal);
-	signalCount++;
-	printf("Current signal count: %d\n", signalCount);
-}
+#include "prime.h"
+
+
+int signalCount1 = 0;
+int signalCount2 = 0;
 
 int main(int argc, char *argv[])
 {
@@ -27,27 +24,37 @@ int main(int argc, char *argv[])
 
 	// check customized command
 	int random = -1;
-	int a = -1;
+	int l,u,childNum;
 	for (int q = 0; q < argc; q++)
 	{
 		if (strcasecmp(argv[q], "-l") == 0)
-			int l = atoi(argv[q + 1]);
+			l = atoi(argv[q + 1]);
 		if (strcasecmp(argv[q], "-u") == 0)
-			int u = atoi(argv[q + 1]);
+			u = atoi(argv[q + 1]);
 		if (strcasecmp(argv[q], "-e") == 0)
-            random = -1
+            random = -1;
 		if (strcasecmp(argv[q], "-r") == 0)
 			random = 1;
 		if (strcasecmp(argv[q], "-n") == 0)
-			int childNum = atoi(argv[q + 1]);
+			childNum = atoi(argv[q + 1]);
 	}
+	
+	// handle SIGUSR1 and SIGUSR2 
+    if(signal(SIGUSR1, signalHandler) == SIG_ERR)
+    {
+        perror("Can't set handler for SIGUSR1\n");
+        exit(1);
+    }
+    
+ 
+    if(signal(SIGUSR2, signalHandler) == SIG_ERR)
+    { 
+        perror("Can't set handler for SIGUSR2\n");
+        exit(1);
+    }
 
-	// define the SIGUSR1 and SIGUSR2 so when the root node receive these signal, they know where to go
-	signal(SIGUSR1, signalHandler);
-	signal(SIGUSR2, signalHandler);
-
-	// send all the info to the coord node to handle
-	Root(getpid(), l, u, random, childNum);
+	// send all the info to the root node to handle
+	root(getpid(), l, u, random, childNum);
 
 	return 0;
 }

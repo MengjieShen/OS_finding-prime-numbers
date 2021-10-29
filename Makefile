@@ -10,8 +10,8 @@ LIBS = -lm
 # ****************************************************
 # Entries to bring the executable up to date
 
-main: main.o structure.o
-	$(CC) $(CFLAGS) -o main main.o structure.o $(LIBS)
+main: main.o structure.o helper.o
+	$(CC) $(CFLAGS) -o main main.o structure.o helper.o $(LIBS)
 	
 main.o: main.c prime.h
 	$(CC) $(CFLAGS) -c main.c
@@ -19,6 +19,9 @@ main.o: main.c prime.h
 structure.o: structure.c prime.h
 	$(CC) $(CFLAGS) -c structure.c
 
+helper.o: helper.c prime.h
+	$(CC) $(CFLAGS) -c helper.c
+
 clean: 
-	rm -f *~ *.o a.out core main
+	rm -f *~ *.o structure test a.out core main
 
