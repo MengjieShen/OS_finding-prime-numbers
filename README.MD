@@ -21,7 +21,20 @@ In general, the concurrent operations of all processes in the hierarchy follow a
 
 one example is that:
 
-```./primes -l LowerBound -u UpperBound -[e|r] -n NumOfNodes```
+```./main -l 1 -u 200000 -e -n 2```
+
+## Files:
+### main.c: 
+handle the flags and start the whole program.
+
+### structure.c: 
+the main structure of the process hierarchy, including functions for root node, delegator node, worker node.
+	
+### helper.c: 
+include those functions that help the main structure to run properly. For example, randomize algorithm, sorting algorithms and finding primes algorithms. 
+
+### prime.h: 
+I defined two different node struct for one linked list storing result of prime numbers and the other linked list storing result of the execution time. I choose to use the linked list so that I can dynamically allocate my memory. 
 
 ## reference 
 shuffle algorithm:
