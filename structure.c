@@ -9,6 +9,8 @@
 #include <unistd.h> /* sysconf() */
 #include <time.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "prime.h"
 
 
@@ -343,7 +345,7 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
         
             if(pid == 0){
                 // set up the timer
-                double t1, t2, cpu_time; 
+                double t1, t2; 
                 struct tms tb1, tb2; 
                 double ticspersec;
                 ticspersec = (double) sysconf(_SC_CLK_TCK); 
@@ -379,7 +381,7 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
 
                 // end the timer and print out the time used
                 t2 = (double) times(&tb2);
-                cpu_time = (double) ((tb2.tms_utime + tb2.tms_stime) - (tb1.tms_utime + tb1.tms_stime));
+                // cpu_time = (double) ((tb2.tms_utime + tb2.tms_stime) - (tb1.tms_utime + tb1.tms_stime));
                 // printf("Run time was %lf sec (REAL time) although we used the CPU for %lf sec (CPU time) .\n", (t2 - t1) / ticspersec, cpu_time / ticspersec);
                 double execution_time =  (t2 - t1) / ticspersec;
                 // char writeIn[100];
@@ -404,46 +406,4 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
     }
 
 }
-
-// int signalCount1 = 0;
-// int signalCount2 = 0;
-
-// void signalHandler(int signo)
-// {
-//     switch(signo) {
-//     case SIGUSR1: //handle SIGUSR1
-//         printf("Parent : catch SIGUSR1\n");
-//         signalCount1++;
-//         break;
-//     case SIGUSR2: //handle SIGUSR2
-//         printf("Child : catch SIGUSR2\n");
-//         signalCount2++;
-//         break;
-//     default:      
-//         printf("Should not be here\n");
-//         break;
-//     }
-// }
-// int main()
-// {
-// 	// handle SIGUSR1 and SIGUSR2 
-//     if(signal(SIGUSR1, signalHandler) == SIG_ERR)
-//     {
-//         perror("Can't set handler for SIGUSR1\n");
-//         exit(1);
-//     }
-
-//     if(signal(SIGUSR2, signalHandler) == SIG_ERR)
-//     { 
-//         perror("Can't set handler for SIGUSR2\n");
-//         exit(1);
-//     }
-
-// 	// send all the info to the root node to handle
-// 	root(getpid(), 1, 10000, -1, 2);
-
-//     printf("total signal 1 caught: %d \n", signalCount1);
-//     printf("total signal 2 caught: %d \n", signalCount2);
-// 	return 0;
-// }
 
