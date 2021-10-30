@@ -97,7 +97,7 @@ void rootParent(int fd[], resultNode** resultll, int timePipe[], timeNode** time
         {
             break;
         }else{
-            printf("Time = %lf \n", exe_time);
+            // printf("Time = %lf \n", exe_time);
             insertTimeAtTheBegin(timell, exe_time);
         }
     }
@@ -225,12 +225,15 @@ void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
     for (int childP = 0; childP < childNum; childP ++){
         wait(NULL);
     }
-    // printList(resultll);
+
+
     //sort the result
     bubbleSort(resultll);
 
-    // //show on tty
-    // printList(resultll);
+    //show result on tty
+    printf("Primes between %d to %d are:\n", lowerBound, upperBound);
+    printList(resultll);
+    printf("\n");
     printf("\n");
     reportTime(timell);
     printf("\n");

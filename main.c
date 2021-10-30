@@ -14,11 +14,11 @@ void signalHandler(int signo)
 {
     switch(signo) {
     case SIGUSR1: //handle SIGUSR1
-        printf("Root : catch SIGUSR1\n");
+        // printf("Root : catch SIGUSR1\n");
         signalCount1++;
         break;
     case SIGUSR2: //handle SIGUSR2
-        printf("Root : catch SIGUSR2\n");
+        // printf("Root : catch SIGUSR2\n");
         signalCount2++;
         break;
     default:      
@@ -29,8 +29,7 @@ void signalHandler(int signo)
 
 int main(int argc, char *argv[])
 {
-	printf("*************************************************************************\n");
-
+	printf("*************************************************************************\nProgram is running...\n");
 	// check customized command
 	int random = -1;
 	int l,u,childNum;
@@ -54,6 +53,7 @@ int main(int argc, char *argv[])
         }
 	}
 	
+    
 	// handle SIGUSR1 and SIGUSR2 
     if(signal(SIGUSR1, signalHandler) == SIG_ERR)
     {
@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
 	// send all the info to the root node to handle
 	root(getpid(), l, u, random, childNum);
     // root(getpid(), 1, 100, -1, 2);
+    printf("\n");
 	printf("total signal 1 caught: %d \n", signalCount1);
     printf("total signal 2 caught: %d \n", signalCount2);
 	return 0;
