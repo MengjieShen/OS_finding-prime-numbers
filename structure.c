@@ -12,12 +12,10 @@
 #include "prime.h"
 
 
-void delegatorParent(int fd[], int timePipe[], int rootPipe[]){
+void delegatorParent(int fd[], int timePipe[], int rootPipe[], int rootTimePipe[]){
 
     while (1){
-        // int primes[BUF_SIZE]; 
         int tmp;
-        // int nread = read(fdBack[0], primes, BUF_SIZE);
         int nread = read(fd[0], &tmp, sizeof(tmp));
         if (nread == -1){
             // case -1 means pipe is empty and errono
@@ -38,8 +36,6 @@ void delegatorParent(int fd[], int timePipe[], int rootPipe[]){
             if(write(rootPipe[1], &tmp, sizeof(int)) == -1){
                  perror("Write failed");
             }
-
-            // printf("delegator MSG = %d\n", tmp);
         }
     }
     // char exe_time[100];
@@ -48,11 +44,15 @@ void delegatorParent(int fd[], int timePipe[], int rootPipe[]){
     if (timeRead < 0){
         perror("time pipe read error");
     }else{
-        printf("Time = %lf \n", exe_time);
+        // printf("Time = %lf \n", exe_time);
+    }
+
+    if(write(rootTimePipe[1], &exe_time, sizeof(double)) == -1){
+        perror("Time write failed");
     }
 }
 
-void rootParent(int fd[], resultNode** resultll){
+void rootParent(int fd[], resultNode** resultll, int timePipe[], timeNode** timell){
     while (1){
         int tmp;
         int nread = read(fd[0], &tmp, sizeof(tmp));
@@ -79,12 +79,34 @@ void rootParent(int fd[], resultNode** resultll){
             // printf("root MSG = %d\n", tmp);
         }
     }
+    while (1){
+        double exe_time;
+        int timeRead = read(timePipe[0], &exe_time, sizeof(double));
+        if (timeRead == -1){
+            if (errno == EAGAIN) {
+                // printf("(pipe empty)\n");
+                sleep(1);
+            }
+            else {
+                perror("read");
+                exit(4);
+            }
+        }else if (timeRead == 0)
+        {
+            break;
+        }else{
+            printf("Time = %lf \n", exe_time);
+            insertTimeAtTheBegin(timell, exe_time);
+        }
+    }
+
 }
 
 void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
 
     //set up the pipe for delegator to transform data back to the root
     int fd[childNum][2];
+    int timePipe[childNum][2];
     for (int j = 0; j < childNum; j++){
         // error checking for pipe
         if(pipe(fd[j]) < 0)
@@ -92,9 +114,18 @@ void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
             perror( "prime number pipe Failed" );
         }
 
+        if(pipe(timePipe[j]) < 0)
+        {
+            perror( "time pipe Failed" );
+        }
+
         // error checking for fcntl
         if(fcntl( fd[j][0], F_SETFL, fcntl(fd[j][0], F_GETFL) | O_NONBLOCK)<0){
             perror("fail to set the prime number pipe to be non-blocking");
+        }
+
+        if(fcntl( timePipe[j][0], F_SETFL, fcntl(timePipe[j][0], F_GETFL) | O_NONBLOCK)<0){
+            perror("fail to set the time pipe to be non-blocking");
         }
         
     }   
@@ -110,6 +141,7 @@ void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
 
     // allocate array for result
     struct resultNode *resultll = NULL;
+    struct timeNode *timell = NULL;
     //number of elements each process will handle
     int numPerProcess = initArrayLength / childNum;
 
@@ -130,9 +162,7 @@ void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
     randomArr[childNum] = initArrayLength;
     Sort(randomArr, childNum+1);
     }
-    // for (int i = 0; i<childNum+1; i++){
-    //     printf("random array check: %d\n", randomArr[i]);
-    // }
+
     // create childNum of delegators
     for (int childP = 0; childP < childNum; childP ++){
         pid_t pid = fork();
@@ -157,30 +187,36 @@ void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
                     if (i != childP){
                         close(fd[i][0]);
                         close(fd[i][1]);
+                        close(timePipe[i][0]);
+                        close(timePipe[i][1]);
                         }
                 }
                 //close the read pipe 
                 close(fd[childP][0]);
+                close(timePipe[childP][0]);
                 if (random == -1){
                     if (childP!= childNum-1){
                         int *delegatorArr = generateArr(childP *numPerProcess, (childP+1)*numPerProcess, initArray);
-                        delegator(getppid(), childNum, delegatorArr, numPerProcess ,fd[childP], random, sig_num);
+                        delegator(getppid(), childNum, delegatorArr, numPerProcess ,fd[childP], timePipe[childP], random, sig_num);
                     }else{
                         int *delegatorArr = generateArr( childP *numPerProcess, initArrayLength, initArray);
-                        delegator(getppid(), childNum, delegatorArr, initArrayLength - childP*numPerProcess ,fd[childP], random, sig_num);
+                        delegator(getppid(), childNum, delegatorArr, initArrayLength - childP*numPerProcess ,fd[childP], timePipe[childP], random, sig_num);
                     }
                 }else{
                     // printf("check random arr: %d, %d \n", randomArr[childP], randomArr[childP+1]);
                     int *delegatorArr = generateArr( randomArr[childP], randomArr[childP+1], initArray);
-                    delegator(getppid(), childNum, delegatorArr, randomArr[childP+1] - randomArr[childP] ,fd[childP], random, sig_num);
+                    delegator(getppid(), childNum, delegatorArr, randomArr[childP+1] - randomArr[childP] ,fd[childP], timePipe[childP], random, sig_num);
                 }
                 close(fd[childP][1]);
+                close(timePipe[childP][1]);
                 exit(0);
             }
             else{
                 close(fd[childP][1]);
-                rootParent(fd[childP], &resultll);
+                close(timePipe[childP][1]);
+                rootParent(fd[childP], &resultll, timePipe[childP], &timell);
                 close(fd[childP][0]);
+                close(timePipe[childP][0]);
             }
     }
     
@@ -192,20 +228,17 @@ void root(pid_t pid, int lowerBound, int upperBound, int random, int childNum){
     bubbleSort(resultll);
 
     // //show on tty
-    printList(resultll);
+    // printList(resultll);
+    printf("\n");
+    reportTime(timell);
     printf("\n");
 
     // clean the memory
     freell(resultll);
+    freetimell(timell);
 }
 
-void worker(pid_t pppid, int start, int end, int delegatorArr[], int fd[], int timePipe[], int sig_num){
-    // set up the timer
-    double t1, t2, cpu_time; 
-    struct tms tb1, tb2; 
-    double ticspersec;
-    ticspersec = (double) sysconf(_SC_CLK_TCK); 
-    t1 = (double) times(&tb1);
+void worker(pid_t pppid, int start, int end, int delegatorArr[], int fd[], int sig_num){
 
     int workerArrLength = end - start;
     int workerArr[workerArrLength];
@@ -235,25 +268,8 @@ void worker(pid_t pppid, int start, int end, int delegatorArr[], int fd[], int t
             if(write(fd[1], &tmp, sizeof(int)) == -1){
                  perror("Write failed");
             }
-            // else{
-            //     printf("process %d wrote the prime numbers into the pipe successfully!\n", getpid());
-            // }
         }
     }
-
-    // end the timer and print out the time used
-    t2 = (double) times(&tb2);
-    cpu_time = (double) ((tb2.tms_utime + tb2.tms_stime) - (tb1.tms_utime + tb1.tms_stime));
-    // printf("Run time was %lf sec (REAL time) although we used the CPU for %lf sec (CPU time) .\n", (t2 - t1) / ticspersec, cpu_time / ticspersec);
-    double execution_time =  (t2 - t1) / ticspersec;
-    // char writeIn[100];
-    // sprintf(writeIn, "%.2f", execution_time);
-    if(write(timePipe[1], &execution_time, sizeof(double)) == -1){
-            perror("Write failed");
-    }
-    // else{
-    //     printf("process %d wrote execution of time successfully into the pipe!\n", getpid());
-    // }
 
     // send signal to the root node
     if (sig_num == 1){
@@ -261,10 +277,14 @@ void worker(pid_t pppid, int start, int end, int delegatorArr[], int fd[], int t
     }else{
         kill(pppid, SIGUSR2);
     }
+
+    // else{
+    //     printf("process %d wrote execution of time successfully into the pipe!\n", getpid());
+    // }
     
 }
 
-void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLength, int rootPipe[], int random, int sigNum)
+void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLength, int rootPipe[], int rootTimePipe[], int random, int sigNum)
 {
     int fd[childNum][2];
     int timePipe[childNum][2];
@@ -313,9 +333,6 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
     Sort(randomArr, childNum+1);
     }
 
-    // for (int i =0; i< childNum+1; i++){
-    //     printf("check delegator random array: %d\n", randomArr[i]);
-    // }
     for (int childP = 0; childP < childNum; childP ++){
         pid_t pid = fork();
             if(pid < 0)
@@ -325,7 +342,16 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
             }
         
             if(pid == 0){
+                // set up the timer
+                double t1, t2, cpu_time; 
+                struct tms tb1, tb2; 
+                double ticspersec;
+                ticspersec = (double) sysconf(_SC_CLK_TCK); 
+                t1 = (double) times(&tb1);
+                // printf("ticspersec: %lf", ticspersec);
+
                 // printf("This is the worker process %d\n", getpid());
+
                 //close the read and write pipe of other children
                 for (int i = 0; i < childNum; i++){
                     if (i != childP){
@@ -340,22 +366,35 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
                 close(timePipe[childP][0]);
                 if (random == -1){
                     if (childP!= childNum-1){
-                        worker(ppid, childP *numPerProcess, (childP+1)*numPerProcess, delegatorArr, fd[childP], timePipe[childP], sigNum);
+                        worker(ppid, childP *numPerProcess, (childP+1)*numPerProcess, delegatorArr, fd[childP],  sigNum);
                     }else{
-                        worker(ppid, childP *numPerProcess, delegatorArrLength, delegatorArr, fd[childP], timePipe[childP], sigNum);
+                        worker(ppid, childP *numPerProcess, delegatorArrLength, delegatorArr, fd[childP], sigNum);
                     }
                 }else{
                     // printf("check random arr: %d, %d \n", randomArr[childP], randomArr[childP+1]);
-                    worker(ppid, randomArr[childP], randomArr[childP+1], delegatorArr, fd[childP],timePipe[childP], sigNum);
+                    worker(ppid, randomArr[childP], randomArr[childP+1], delegatorArr, fd[childP], sigNum);
                 }
+
                 close(fd[childP][1]);
+
+                // end the timer and print out the time used
+                t2 = (double) times(&tb2);
+                cpu_time = (double) ((tb2.tms_utime + tb2.tms_stime) - (tb1.tms_utime + tb1.tms_stime));
+                // printf("Run time was %lf sec (REAL time) although we used the CPU for %lf sec (CPU time) .\n", (t2 - t1) / ticspersec, cpu_time / ticspersec);
+                double execution_time =  (t2 - t1) / ticspersec;
+                // char writeIn[100];
+                // sprintf(writeIn, "%.2f", execution_time);
+                if(write(timePipe[childP][1], &execution_time, sizeof(double)) == -1){
+                    perror("Write failed");
+                }
                 close(timePipe[childP][1]);
                 exit(0);
             }
+            
             else{
                 close(fd[childP][1]);
                 close(timePipe[childP][1]);
-                delegatorParent(fd[childP], timePipe[childP], rootPipe);
+                delegatorParent(fd[childP], timePipe[childP], rootPipe, rootTimePipe);
                 close(fd[childP][0]);
                 close(timePipe[childP][0]);
             }

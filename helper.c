@@ -9,6 +9,7 @@
 #include <unistd.h> /* sysconf() */
 #include <time.h>
 #include <signal.h>
+#include <math.h>
 #include "prime.h"
 
 void swap(int *a, int *b) {
@@ -90,6 +91,45 @@ void bubbleSort(struct resultNode *start)
     while (swapped);
 }
 
+void reportTime(struct timeNode *start){
+    const double EPS = 1e-6; 
+    struct timeNode *temp = start;
+    double min = temp -> data;
+    double max = temp -> data;
+    double sum = (double) 0;
+    
+    int total = 0;
+    // printf("\n");
+    while (temp!=NULL)
+    {   
+        double cur = temp -> data;
+        if (cur < min + EPS){
+            min = cur;
+        }
+        if (cur > max + EPS){
+            max = cur;
+        }
+        sum = (double) sum + cur;
+        if (fabs(cur - 0) > EPS){
+            total ++;
+        }
+        temp = temp->next;
+        // printf("total sum check %lf", sum);
+    }
+    // printf("total check: %d", total);
+    double avg;
+    if (total != 0){
+        
+        avg = (double)sum/total;
+    }else{
+        avg = (double)0;
+    }
+    printf("RUNTIME STATISTICS REPORT:\n");
+    printf("Maximum runtime: %lf\n", max);
+    printf("Minimum runtime: %lf\n", min);
+    printf("Average runtime: %lf", avg);
+}
+
 void printList(struct resultNode *start)
 { 
     struct resultNode *temp = start;
@@ -104,6 +144,14 @@ void printList(struct resultNode *start)
 void insertAtTheBegin(struct resultNode **start_ref, int data)
 {
     struct resultNode *ptr1 = (struct resultNode*)malloc(sizeof(struct resultNode));
+    ptr1->data = data;
+    ptr1->next = *start_ref;
+    *start_ref = ptr1;
+}
+
+void insertTimeAtTheBegin(struct timeNode **start_ref, double data)
+{
+    struct timeNode *ptr1 = (struct timeNode*)malloc(sizeof(struct timeNode));
     ptr1->data = data;
     ptr1->next = *start_ref;
     *start_ref = ptr1;
@@ -144,6 +192,19 @@ int* generateArr(int start, int end, int Arr[]){
 int freell(struct resultNode *head)
 {
     struct resultNode *current = NULL;
+    current = head;
+    while (current != NULL)
+    {
+        head = head->next;
+        free(current);
+        current = head;
+    }
+    return 0;
+}
+
+int freetimell(struct timeNode *head)
+{
+    struct timeNode *current = NULL;
     current = head;
     while (current != NULL)
     {

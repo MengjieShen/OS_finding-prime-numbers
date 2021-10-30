@@ -13,11 +13,11 @@ void signalHandler(int signo)
 {
     switch(signo) {
     case SIGUSR1: //handle SIGUSR1
-        printf("Parent : catch SIGUSR1\n");
+        printf("Root : catch SIGUSR1\n");
         signalCount1++;
         break;
     case SIGUSR2: //handle SIGUSR2
-        printf("Child : catch SIGUSR2\n");
+        printf("Root : catch SIGUSR2\n");
         signalCount2++;
         break;
     default:      
