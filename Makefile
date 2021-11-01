@@ -23,7 +23,7 @@ helper.o: helper.c prime.h
 	$(CC) $(CFLAGS) -c helper.c
 
 run: main
-	./main -l 1 -u 10 -r -n 2
+	./main -l 50 -u 20000 -r -n 7
 clean: 
 	rm -f *~ *.o structure test a.out core main
 

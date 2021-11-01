@@ -125,9 +125,9 @@ void reportTime(struct timeNode *start){
         avg = (double)0;
     }
     printf("RUNTIME STATISTICS REPORT:\n");
-    printf("Maximum runtime: %lf\n", max);
-    printf("Minimum runtime: %lf\n", min);
-    printf("Average runtime: %lf", avg);
+    printf("Maximum runtime: %.2lf\n", max);
+    printf("Minimum runtime: %.2lf\n", min);
+    printf("Average runtime: %.5lf", avg);
 }
 
 void printList(struct resultNode *start)

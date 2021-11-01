@@ -353,7 +353,7 @@ void delegator(pid_t ppid, int childNum, int delegatorArr[], int delegatorArrLen
                 double ticspersec;
                 ticspersec = (double) sysconf(_SC_CLK_TCK); 
                 t1 = (double) times(&tb1);
-                // printf("ticspersec: %lf", ticspersec);
+                // printf("ticspersec: %10lf", t1);
 
                 // printf("This is the worker process %d\n", getpid());
 
